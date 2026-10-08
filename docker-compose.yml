@@ -1,0 +1,51 @@
+services:
+  # PHP-FPM: executa o código Laravel
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecommerce_app
+    volumes:
+      - ./backend:/var/www
+    working_dir: /var/www
+    depends_on:
+      - db
+    networks:
+      - ecommerce
+
+  # Nginx: recebe as requisições HTTP e repassa ao PHP-FPM
+  webserver:
+    image: nginx:alpine
+    container_name: ecommerce_webserver
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - ecommerce
+
+  # PostgreSQL: banco de dados
+  db:
+    image: postgres:16-alpine
+    container_name: ecommerce_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: ecommerce_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce
+
+networks:
+  ecommerce:
+    driver: bridge
+
+volumes:
+  db_data:
